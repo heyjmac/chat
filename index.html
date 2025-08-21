@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+</head>
+<body class="w-full h-screen flex flex-col bg-white">
+  <div id="app" class="flex-1 flex flex-col overflow-hidden">
+    <h1 class="text-2xl font-light mb-4 px-6 pt-6">Chat Assistant</h1>
+    <div id="messages" class="flex-1 overflow-y-auto border-t border-b border-gray-100 mb-4 p-6 flex flex-col gap-6"></div>
+
+    <div class="sticky bottom-0 bg-white px-6 pb-6 pt-3 border-t border-gray-100 relative">
+      <div class="relative">
+        <input id="input" type="text" class="w-full border border-gray-200 rounded-lg py-3 px-4 pr-12 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Type your message..." />
+        <button id="send" class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700">
+          <span class="material-symbols-outlined text-sm">send</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sticky bottom-0 bg-white flex items-center gap-2 text-sm text-gray-500 px-6 pb-6 pt-3 border-t border-gray-100">
+        <span class="mr-1">Tools:</span>
+        <div class="px-3 py-1 rounded-full transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm">email</span>
+          <span>Email</span>
+        </div>
+        <div class="px-3 py-1 rounded-full transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
+          <span>PDF</span>
+        </div>
+        <div class="px-3 py-1 rounded-full transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm text-blue-600">description</span>
+          <span>Word</span>
+        </div>
+    </div>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+
+    function setupMessageActions() {
+      // Copy button
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.onclick = () => {
+          const textToCopy = btn.closest('.border').querySelector('pre, .email-body')?.innerText || '';
+          navigator.clipboard.writeText(textToCopy).then(() => {
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 1500);
+          });
+        };
+      });
+
+      // Send button
+        document.querySelectorAll('.send-btn').forEach(btn => {
+            btn.onclick = () => {
+                const to = encodeURIComponent(btn.dataset.to);
+                const subject = encodeURIComponent(btn.dataset.subject);
+                const body = encodeURIComponent(btn.dataset.body);
+                window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+            };
+        });
+    }
+
+    function renderBotArtifacts(results) {
+      return results.map(r => {
+        if (r.tool === 'informUser') {
+          return `<p class="mb-4">${r.output.message}</p>`;
+        }
+        if (r.tool === 'generateTextFile') {
+          return `
+            <div class="border border-gray-200 rounded-lg mb-4 overflow-hidden transition-all hover:shadow-md">
+              <div class="bg-gray-50 px-3 py-2 border-b border-gray-200 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-blue-500 text-sm">description</span>
+                  <h3 class="text-sm font-medium">Documento Word</h3>
+                </div>
+                <button class="copy-btn text-blue-600 text-xs hover:text-blue-700">Copy</button>
+              </div>
+              <div class="p-3 bg-white">
+                <pre class="text-sm whitespace-pre-wrap">${r.output.content}</pre>
+              </div>
+            </div>
+          `;
+        } else if (r.tool === 'draftEmail') {
+          return `
+            <div class="border border-gray-200 rounded-lg mb-4 overflow-hidden transition-all hover:shadow-md">
+              <div class="bg-gray-50 px-3 py-2 border-b border-gray-200 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-gray-500 text-sm">email</span>
+                  <h3 class="text-sm font-medium">Email to ${r.output.to}</h3>
+                </div>
+                <button class="copy-btn text-blue-600 text-xs hover:text-blue-700">Copy</button>
+                <button class="send-btn text-blue-600 text-xs hover:text-blue-700"
+                  data-to="${r.output.to}" 
+                  data-subject="${r.output.subject}" 
+                  data-body="${r.output.body}">
+                  Send
+                </button>
+              </div>
+              <div class="p-3 bg-white email-body">
+                <p class="text-sm font-medium mb-1">Subject: ${r.output.subject}</p>
+                <p class="text-sm mb-3">To: ${r.output.to}</p>
+                <p class="text-sm mb-2">${r.output.body}</p>
+              </div>
+            </div>
+          `;
+        } else if (r.tool === 'generateReportPDF') {
+          return `
+            <div class="border border-gray-200 rounded-lg mb-4 flex items-center p-3 hover:bg-gray-50 transition-all group">
+              <span class="material-symbols-outlined text-red-500 mr-3">picture_as_pdf</span>
+              <div class="flex-1">
+                <h3 class="text-sm font-medium">${r.output.fileName}</h3>
+                <p class="text-xs text-gray-500">${(Math.random()*2+0.5).toFixed(1)} MB - Generated PDF report</p>
+              </div>
+              <a href="${r.output.publicUrl}" download class="text-gray-400 hover:text-blue-600">
+                <span class="material-symbols-outlined">download</span>
+              </a>
+            </div>
+          `;
+        }
+        return `
+          <div class="border border-gray-200 rounded-lg p-3">
+            <h3 class="text-sm font-medium">${r.tool}</h3>
+            <pre class="text-xs bg-gray-50 p-2 rounded mt-1">${JSON.stringify(r.output, null, 2)}</pre>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addMessage(role, content) {
+      const wrap = document.createElement('div');
+      wrap.className = 'flex gap-3 items-start ' + (role === 'bot' ? 'flex-row-reverse' : '');
+      wrap.innerHTML = `
+        <div class="w-8 h-8 rounded-full flex items-center justify-center ${role === 'bot' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600'}">
+          <span class="material-symbols-outlined text-sm">${role === 'bot' ? 'smart_toy' : 'person'}</span>
+        </div>
+        <div class="flex-1 max-w-[80%] bg-gray-50 p-4 rounded-lg ${role === 'bot' ? 'rounded-tr-none' : 'rounded-tl-none'}">
+          ${role === 'bot' && Array.isArray(content) ? renderBotArtifacts(content) : `<p>${content}</p>`}
+        </div>
+      `;
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    sendBtn.onclick = async () => {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      addMessage('user', text);
+      inputEl.value = '';
+      const res = await fetch('/ask-ai', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ prompt: text }) 
+      });
+      const data = await res.json();
+      addMessage('bot', data.toolResults);
+      setupMessageActions();
+    };
+
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendBtn.click();
+        }
+    });
+
+  </script>
+</body>
+</html>

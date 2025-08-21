@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@layer base {
+  @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1em;
+  display: inline-block;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+}
