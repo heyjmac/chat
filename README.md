@@ -1,4 +1,4 @@
 ```
 npm i
-node .
+npm run dev
 ```
